@@ -1,0 +1,236 @@
+<!doctype html>
+<html>
+<head>
+  <title>Ordem de Serviço</title>
+  <link href="http://bootswatch.com/lumen/bootstrap.min.css" rel="stylesheet">
+  <style type="text/css">
+  /* required style*/
+  .none{display: none;}
+
+  /* optional styles */
+  table tr th, table tr td{font-size: 1.2rem;}
+  .row{ margin:20px 20px 20px 20px;width: 100%;}
+  .glyphicon{font-size: 20px;}
+  .glyphicon-plus{float: right;}
+  a.glyphicon{text-decoration: none;cursor: pointer;}
+  .glyphicon-trash{margin-left: 10px;}
+  .alert{
+    width: 50%;
+    border-radius: 0;
+    margin-top: 10px;
+    margin-left: 10px;
+  }
+  </style>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+  <script src = "https://ajax.googleapis.com/ajax/libs/angularjs/1.5.7/angular.min.js"></script>
+  <script>
+  // define application
+  angular.module("crudApp", [])
+  .controller("userController", function($scope,$http){
+    $scope.users = [];
+    $scope.tempUserData = {};
+    // function to get records from the database
+    $scope.getRecords = function(){
+      $http.get('action.php', {
+        params:{
+          'type':'view'
+        }
+      }).success(function(response){
+        if(response.status == 'OK'){
+          $scope.users = response.records;
+        }
+      });
+    };
+
+    // function to insert or update user data to the database
+    $scope.saveUser = function(type){
+      var data = $.param({
+        'data':$scope.tempUserData,
+        'type':type
+      });
+      var config = {
+        headers : {
+          'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8;'
+        }
+      };
+      $http.post("action.php", data, config).success(function(response){
+        if(response.status == 'OK'){
+          if(type == 'edit'){
+            $scope.users[$scope.index].id = $scope.tempUserData.id;
+            $scope.users[$scope.index].executor = $scope.tempUserData.executor;
+            $scope.users[$scope.index].dia = $scope.tempUserData.dia;
+            $scope.users[$scope.index].status = $scope.tempUserData.status;
+          }else{
+            $scope.users.push({
+              id:response.data.id,
+              executor:response.data.executor,
+              dia:response.data.dia,
+              status:response.data.status
+            });
+
+          }
+          $scope.userForm.$setPristine();
+          $scope.tempUserData = {};
+          $('.formData').slideUp();
+          $scope.messageSuccess(response.msg);
+        }else{
+          $scope.messageError(response.msg);
+        }
+      });
+    };
+
+    // function to add user data
+    $scope.addUser = function(){
+      $scope.saveUser('add');
+    };
+
+    // function to edit user data
+    $scope.editUser = function(user){
+      $scope.tempUserData = {
+        id:user.id,
+        executor:user.executor,
+        dia:user.dia,
+        status:user.status
+      };
+      $scope.index = $scope.users.indexOf(user);
+      $('.formData').slideDown();
+    };
+
+    // function to update user data
+    $scope.updateUser = function(){
+      $scope.saveUser('edit');
+    };
+
+    // function to delete user data from the database
+    $scope.deleteUser = function(user){
+      var conf = confirm('Tem certeza de que deseja deletar?');
+      if(conf === true){
+        var data = $.param({
+          'id': user.id,
+          'type':'delete'
+        });
+        var config = {
+          headers : {
+            'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8;'
+          }
+        };
+        $http.post("action.php",data,config).success(function(response){
+          if(response.status == 'OK'){
+            var index = $scope.users.indexOf(user);
+            $scope.users.splice(index,1);
+            $scope.messageSuccess(response.msg);
+          }else{
+            $scope.messageError(response.msg);
+          }
+        });
+      }
+    };
+
+    // function to display success message
+    $scope.messageSuccess = function(msg){
+      $('.alert-success > p').html(msg);
+      $('.alert-success').show();
+      $('.alert-success').delay(5000).slideUp(function(){
+        $('.alert-success > p').html('');
+      });
+    };
+
+    // function to display error message
+    $scope.messageError = function(msg){
+      $('.alert-success > p').html(msg);
+      $('.alert-success').show();
+      $('.alert-success').delay(5000).slideUp(function(){
+        $('.alert-success > p').html('');
+      });
+    };
+  });
+  </script>
+</head>
+<body ng-app="crudApp">
+
+  <div class="container-fluid">
+    <nav class="navbar navbar-default">
+      <div class="container-fluid">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="#">Ordem de Serviço</a>
+        </div>
+
+        <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+          <ul class="nav navbar-nav">
+            <li><a href="../../">Home <span class="sr-only">(current)</span></a></li>
+            <li><a href="../pessoa/pessoa.html">Pessoa</a></li>
+            <li><a href="../servico/servico.html">Serviço</a></li>
+            <li class="active"><a href="#">Ordem de Serviço</a></li>
+          </ul>
+          <ul class="nav navbar-nav navbar-right">
+            <li><a href="#">README</a></li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container" ng-controller="userController" ng-init="getRecords()">
+      <div class="row">
+        <h2>Ordem de Serviço</h2>
+
+        <div class="input-group">
+          <span class="input-group-addon" id="basic-addon1"><i class="glyphicon glyphicon-search"></i></span>
+          <input ng-model="busca" type="text" class="form-control" placeholder="busca" aria-describedby="basic-addon1">
+        </div>
+        <br>
+
+        <div class="panel panel-default users-content">
+          <div class="panel-heading">Cadastrados <a href="javascript:void(0);" class="glyphicon glyphicon-plus" onClick="$('.formData').slideToggle();"></a></div>
+          <div class="alert alert-danger none"><p></p></div>
+          <div class="alert alert-success none"><p></p></div>
+          <div class="panel-body none formData">
+            <form class="form" name="userForm">
+              <div class="form-group">
+                <label>Executor</label>
+                <input type="text" class="form-control" name="executor" ng-model="tempUserData.executor"/>
+              </div>
+              <div class="form-group">
+                <label>Data</label>
+                <input type="text" class="form-control" name="dia" ng-model="tempUserData.dia"/>
+              </div>
+              <div class="form-group">
+                <label>Status</label>
+                <input type="text" class="form-control" name="status" ng-model="tempUserData.status"/>
+              </div>
+              <a href="javascript:void(0);" class="btn btn-warning" onClick="$('.formData').slideUp();">Cancelar</a>
+              <a href="javascript:void(0);" class="btn btn-success" onClick="javascript:location.reload();" ng-hide="tempUserData.id" ng-click="addUser()">Adicionar</a>
+              <a href="javascript:void(0);" class="btn btn-success" ng-hide="!tempUserData.id" ng-click="updateUser()">Atualizar</a>
+            </form>
+          </div>
+          <table class="table table-striped">
+            <tr>
+              <th width="5%">#</th>
+              <th width="20%">Executor</th>
+              <th width="30%">Data</th>
+              <th width="20%">Status</th>
+              <th width="10%"></th>
+            </tr>
+            <tr ng-repeat="user in users | filter:busca">
+              <td>{{$index + 1}}</td>
+              <td>{{user.executor}}</td>
+              <td>{{user.dia}}</td>
+              <td>{{user.status}}</td>
+              <td>
+                <a href="javascript:void(0);" class="glyphicon glyphicon-edit" ng-click="editUser(user)"></a>
+                <a href="javascript:void(0);" class="glyphicon glyphicon-trash" ng-click="deleteUser(user)"></a>
+              </td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
